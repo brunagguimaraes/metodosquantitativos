@@ -1,0 +1,149 @@
+---
+title: "Lista 4"
+author: "Bruna Gomes Guimarães"
+date: "05 de junho"
+output:
+  html_document: default
+  pdf_document: default
+subtitle: Pontos de concentração de população em situação de rua em 2023
+revealjs::revealjs_presentation:
+  theme: dark
+  transition: slide
+  navigationMode: default
+  self_contained: true
+  css: custom_styles.css
+---
+
+```{r include=FALSE}
+
+#Pacotes ----
+library(pacman)
+p_load("tidyverse", "tidyr", "haven", "lubridate","janitor",
+       "readxl", "stringr", "magrittr", "psych", "gapminder","scales",
+       "rmarkdown","writexl","infer","patchwork","car","ggpubr","tidymodels",
+       "stats")
+
+#Importacao ----
+library(readxl)
+dados_lista_4 <- read_excel("C:/Users/Public/Quanti aula 3/dados lista 4.xlsx")
+glimpse(dados_lista_4) #Concentração de Pop rua nas RAs e quantitativo de abordagem nas RAs
+range(dados_lista_4$media_pontos_prop)
+range(dados_lista_4$media_abordagem_prop)
+
+lista4 <- dados_lista_4 %>% ggplot(aes(x=media_abordagem_prop, y=media_pontos_prop)) +
+ geom_point() + geom_smooth(method="lm") + labs(x = "Abordagem social",  # Adjust label if 'estimate' represents variables
+    y = "Pontos de Concentração",
+    title = "Correlação entre pontos e abordagem",
+  ) +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+```
+
+## *O que são pontos de concentração de pessoas em situação de rua?*
+
+O Serviço de Abordagem Social no DF (SEAS) é um serviço que atende pessoas em situação de rua nos espaços públicos do Distrito Federal para inserção na Política de Assistência Social e demais Políticas Públicas. Esse serviço também mapeia a concentração das pessoas em situação de rua no território o que são chamados de pontos de concentração. Os dados dos ponto de contração de pop rua em 2023 foi coletado por mês e por RA, esse quantitativo foi transformado em uma razão a partir de proporção do quantitativo populacional daquela RA. Após obter-se a razão de cada mês, calculou-se a média de pontos em 2023.
+
+## *Quantitativo de abordagens do SEAS*
+
+Conforme a descrição do serviço, as abordagens são realizadas de forma planejada e continuada e ocorrem todos os dias da semana em todo o território do DF, inclusive domingos e feriados, conforme organização territorial das equipes.
+
+Os dados de abordagem de pop rua nas RAs foi coletado por mês de 2023, esse nº foi transformado em uma razão dividido pelo quantitativo populacional da RA. Após obter-se a razão de todos os meses, calculou-se a média da razão de abordagens no ano de 2023.
+
+------------------------------------------------------------------------
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plot(lista4)
+```
+
+## *Corrrelação*
+
+Observação de padrões de relação e correlação entre o número de pontos de concentração e de abordagens realizadas nos territórios
+
+```{r echo=FALSE}
+
+set.seed(123)  # Para reprodutibilidade
+
+# Especificar o modelo
+especificacao <- dados_lista_4 %>%
+  specify(media_pontos_prop ~ media_abordagem_prop)
+
+#distribuição nula via bootstrap
+distribuicao_nula <- especificacao %>%
+  generate(reps = 1000, type = "bootstrap")
+
+# Calcular a estatística desejada, por exemplo, a diferença de médias
+estatisticas_nulas <- distribuicao_nula %>%
+   calculate(stat = "correlation")
+
+# Obter o intervalo de confiança
+intervalo_confianca <- estatisticas_nulas %>%
+  get_confidence_interval(level = 0.95)
+
+# Exibir os resultados
+intervalo_confianca
+
+# Visualizar os resultados
+Estimativa_intervalar <- estatisticas_nulas %>%
+  visualize() +
+  shade_confidence_interval(endpoints = intervalo_confianca)
+
+# O intervalo de confiança de pontos
+pontos_int <- dados_lista_4 %>%
+  mutate(
+    # Aqui assumimos um erro padrão arbitrário para exemplo, ajuste conforme necessário
+    sd_pontos = sd(media_pontos_prop) / sqrt(n()), 
+    sd_abordagem = sd(media_abordagem_prop) / sqrt(n()),
+    lower_pontos = media_pontos_prop - 1.96 * sd_pontos,
+    upper_pontos = media_pontos_prop + 1.96 * sd_pontos,
+    lower_abordagem = media_abordagem_prop - 1.96 * sd_abordagem,
+    upper_abordagem = media_abordagem_prop + 1.96 * sd_abordagem
+  )
+
+
+Grafico_1 <- ggplot(pontos_int, aes(x = media_abordagem_prop, y = media_pontos_prop)) +
+  geom_point() +  # Pontos de dados
+  geom_smooth(method = "lm", se = FALSE, color = "lightgreen") +  # Linha de regressão
+  geom_errorbar(aes(ymin = lower_pontos, ymax = upper_pontos),
+                width = 0.2, color = "red") +  # Intervalo de confiança
+  labs(title = "Relação entre Pontos de Concentração e Abordagens Sociais",
+       x = "Média de Abordagem Social",
+       y = "Média de Pontos de Concentração") +
+  theme_minimal() + theme(plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12)
+)
+
+# Grafico_1 <- ggplot(dados_lista_4, aes(x = media_abordagem_prop, y = #media_pontos_prop)) +
+#  geom_point(size = 3, color = "gray5", alpha = 0.7) +  # Pontos de dados
+#  geom_smooth(method = "lm", se = FALSE, color = "lightgreen") +  # Linha de regressão
+#  geom_errorbar(aes(ymin = intervalo_confianca$lower_ci, ymax = #intervalo_confianca$upper_ci),
+#                width = 0.2, color = "red") +  # Intervalo de confiança
+#  labs(title = "Relação entre Pontos de Concentração e Abordagens Sociais",
+#       x = "Média de Abordagem Social",
+#      y = "Média de Pontos de Concentração") +
+#  theme_minimal() + theme(plot.title = element_text(size = 16, face = "bold"),
+#    axis.title = element_text(size = 14),
+#    axis.text = element_text(size = 12)
+#)
+
+
+```
+
+------------------------------------------------------------------------
+
+```{r echo=FALSE}
+plot(Estimativa_intervalar)
+```
+
+## *Estimativa intervalar*
+
+A média dos pontos de concentração de pessoas em situação de rua para cada cidade satélite está contida dentro da zona verde.
+
+```{r}
+plot(Grafico_1)
+```
+
+
+## Hipótese
+
+Uma maior quantidade de pontos de concentração em uma localidade demanda mais atuação do serviço de abordagem social
