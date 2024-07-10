@@ -59,11 +59,11 @@ plot(lista4)
 
 Observação de padrões de relação e correlação entre o número de pontos de concentração e de abordagens realizadas nos territórios
 
-```{r echo=FALSE}
+```{r include=FALSE}
 
 set.seed(123)  #reprodutibilidade
 
-epecificacao <- dados_lista_4 %>%
+especificacao <- dados_lista_4 %>%
   specify(media_pontos_prop ~ media_abordagem_prop)
 
 distribuicao_nula <- especificacao %>%
@@ -79,35 +79,28 @@ intervalo_confianca <- estatisticas_nulas %>%
 
 intervalo_confianca
 
-Estimativa_intervalar <- estatisticas_nulas %>%
+Intervalo <- estatisticas_nulas %>%
   visualize() +
   shade_confidence_interval(endpoints = intervalo_confianca)
 
-# O intervalo de confiança de pontos
+# O intervalo de confiança de pontos de concentração
 pontos_int <- dados_lista_4 %>%
   mutate(
     # erro padrão
-    sd_pontos = sd(media_pontos_prop) / sqrt(n()), 
-    sd_abordagem = sd(media_abordagem_prop) / sqrt(n()),
+    sd_pontos = sd(media_pontos_prop) / sqrt(n()),
     lower_pontos = media_pontos_prop - 1.96 * sd_pontos,
-    upper_pontos = media_pontos_prop + 1.96 * sd_pontos,
-    lower_abordagem = media_abordagem_prop - 1.96 * sd_abordagem,
-    upper_abordagem = media_abordagem_prop + 1.96 * sd_abordagem
-  )
+    upper_pontos = media_pontos_prop + 1.96 * sd_pontos,)
 
 
-Grafico_1 <- ggplot(pontos_int, aes(x = media_abordagem_prop, y = media_pontos_prop)) +
-  geom_point() +  # Pontos de dados
-  geom_smooth(method = "lm", se = FALSE, color = "lightgreen") +  # Linha de regressão
-  geom_errorbar(aes(ymin = lower_pontos, ymax = upper_pontos),
-                width = 0.2, color = "red") +  # Intervalo de confiança
-  labs(title = "Relação entre Pontos de Concentração e Abordagens Sociais",
-       x = "Média de Abordagem Social",
-       y = "Média de Pontos de Concentração") +
-  theme_minimal() + theme(plot.title = element_text(size = 16, face = "bold"),
-    axis.title = element_text(size = 14),
-    axis.text = element_text(size = 12)
-)
+# Criar o gráfico de estimativa intervalar para `media_pontos_prop`
+Grafico_1 <- ggplot(pontos_int, aes(x = ra, y = media_pontos_prop)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = lower_pontos, ymax = upper_pontos), width = 0.2, color="red") +
+  labs(title = "Estimativa Intervalar de pontos de concentração por Região Administrativa",
+       x = "Região Administrativa (RA)",
+       y = "pontos de concentração") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 
 # Grafico_1 <- ggplot(dados_lista_4, aes(x = media_abordagem_prop, y = #media_pontos_prop)) +
 #  geom_point(size = 3, color = "gray5", alpha = 0.7) +  # Pontos de dados
@@ -128,18 +121,21 @@ Grafico_1 <- ggplot(pontos_int, aes(x = media_abordagem_prop, y = media_pontos_p
 ------------------------------------------------------------------------
 
 ```{r echo=FALSE}
-plot(Estimativa_intervalar)
+plot(Intervalo)
 ```
 
-## *Estimativa intervalar*
+## *Intervalo de confiança*
 
-A média dos pontos de concentração de pessoas em situação de rua para cada cidade satélite está contida dentro da zona verde.
+---
 
-```{r}
+
+## *Estimativa intervalar de pontos de concentração*
+
+```{r echo=FALSE}
 plot(Grafico_1)
 ```
 
-
+---
 ## *Hipótese*
 
 Uma maior quantidade de pontos de concentração em uma localidade demanda mais atuação do serviço de abordagem social
